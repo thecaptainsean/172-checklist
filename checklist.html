@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bates Aviation — Cessna 172M Pilot Checklist</title>
+
+<!-- ===== iOS / Home Screen web-app config ===== -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bates 172M">
+<meta name="theme-color" content="#0e1116">
+<!-- App icon (baked-in SVG, no extra file needed) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMTgwIDE4MCI+PHJlY3Qgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxMjE2MWQiLz48ZyBmaWxsPSIjZTNiMDRiIj48cmVjdCB4PSI4MiIgeT0iMzQiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxMTIiIHJ4PSI2Ii8+PHJlY3QgeD0iMjgiIHk9Ijg0IiB3aWR0aD0iMTI0IiBoZWlnaHQ9IjE0IiByeD0iNiIvPjxyZWN0IHg9IjU4IiB5PSIxMzIiIHdpZHRoPSI2NCIgaGVpZ2h0PSIxMiIgcng9IjUiLz48L2c+PGNpcmNsZSBjeD0iOTAiIGN5PSI5MCIgcj0iNzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjA0YiIgc3Ryb2tlLXdpZHRoPSI2Ii8+PC9zdmc+">
+
+<style>
+  /* ===== THEME VARIABLES (set by JS on :root) ===== */
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-edge: #2a323d;
+    --ink: #e6edf3;
+    --ink-dim: #8b97a5;
+    --accent: #d9a441;
+    --green-edge: #2f9d62;
+    --done-bg: #11271a;
+    --row-line: rgba(255,255,255,.03);
+    --input-bg: #0b0e13;
+    --font-body: "Courier New", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--scale, 1rem);
+    line-height: 1.5;
+    padding: calc(20px + env(safe-area-inset-top)) 14px 60px;
+    transition: background .25s ease, color .25s ease;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header {
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    background: var(--panel);
+    position: relative;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+    color: var(--accent);
+  }
+  header .sub { font-size: .8rem; color: var(--ink-dim); margin-top: 4px; }
+  header .tail {
+    margin-top: 10px;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    font-size: .8rem;
+  }
+  header .tail label { color: var(--ink-dim); }
+  header .tail input {
+    background: var(--input-bg);
+    border: 1px solid var(--panel-edge);
+    color: var(--ink);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: .8rem;
+    width: 150px;
+  }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  button {
+    font-family: inherit;
+    font-size: .78rem;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--panel-edge);
+    border-radius: 5px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  button:active { transform: translateY(1px); }
+  button.warn { border-color: #8a4a4a; color: #d98a8a; }
+  button.accent { border-color: var(--accent); color: var(--accent); }
+
+  .progress-line { font-size: .78rem; color: var(--ink-dim); margin-bottom: 18px; }
+  .progress-line strong { color: var(--accent); }
+
+  section {
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    margin-bottom: 14px;
+    background: var(--panel);
+    overflow: hidden;
+    transition: background .35s ease, border-color .35s ease;
+  }
+  section.complete {
+    background: var(--done-bg);
+    border-color: var(--green-edge);
+  }
+
+  .sec-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; cursor: pointer; user-select: none;
+    border-left: 4px solid transparent;
+    transition: background .25s ease;
+  }
+
+  /* ===== Category color bands (driven by CSS vars set in JS) ===== */
+  .sec-head[data-group="preflight"] {
+    background: var(--g-preflight-bg);
+    border-left-color: var(--g-preflight-edge);
+  }
+  .sec-head[data-group="engine"] {
+    background: var(--g-engine-bg);
+    border-left-color: var(--g-engine-edge);
+  }
+  .sec-head[data-group="depart"] {
+    background: var(--g-depart-bg);
+    border-left-color: var(--g-depart-edge);
+  }
+  .sec-head[data-group="arrive"] {
+    background: var(--g-arrive-bg);
+    border-left-color: var(--g-arrive-edge);
+  }
+  .sec-head[data-group="emerg"] {
+    background: var(--g-emerg-bg);
+    border-left-color: var(--g-emerg-edge);
+  }
+
+  /* ===== Night-mode overrides: red-only palette, alpha varies =====
+     Keeps dark-adapted vision but still differentiates sections. */
+  html[data-mode="night"] .sec-head[data-group="preflight"],
+  html[data-mode="night"] .sec-head[data-group="engine"],
+  html[data-mode="night"] .sec-head[data-group="depart"],
+  html[data-mode="night"] .sec-head[data-group="arrive"] {
+    background: rgba(180, 30, 20, .18);
+    border-left-color: rgba(220, 60, 40, .8);
+  }
+  html[data-mode="night"] .sec-head[data-group="emerg"] {
+    background: rgba(255, 80, 60, .35);
+    border-left-color: rgba(255, 100, 70, 1);
+  }
+  .sec-head h2 {
+    margin: 0; font-size: .92rem; letter-spacing: .5px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .sec-head .count { font-size: .72rem; color: var(--ink-dim); }
+  section.complete .sec-head .count { color: var(--green-edge); }
+  .chev { color: var(--ink-dim); font-size: .75rem; transition: transform .2s; }
+  section.collapsed .chev { transform: rotate(-90deg); }
+  section.collapsed .items { display: none; }
+
+  .badge {
+    font-size: .62rem; border: 1px solid currentColor;
+    border-radius: 3px; padding: 1px 5px; color: var(--ink-dim);
+  }
+  .badge.done { color: var(--green-edge); }
+
+  .items { padding: 4px 0 8px; }
+
+  .item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 14px; cursor: pointer;
+    border-top: 1px solid var(--row-line);
+  }
+  .item:first-child { border-top: none; }
+
+  .box {
+    flex: none; width: 19px; height: 19px; margin-top: 1px;
+    border: 2px solid var(--ink-dim); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: bold; color: transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .item.checked .box {
+    background: var(--green-edge); border-color: var(--green-edge);
+    color: var(--bg);
+  }
+
+  .item .label { flex: 1; font-size: .85rem; }
+  .item .label .dots { color: var(--panel-edge); }
+  .item .label .action { color: var(--accent); font-weight: bold; }
+  .item.checked .label { color: var(--ink-dim); }
+  .item.checked .label .action { color: var(--green-edge); }
+
+  .add-row { display: flex; gap: 6px; padding: 8px 14px 4px; }
+  .add-row input {
+    flex: 1; background: var(--input-bg);
+    border: 1px solid var(--panel-edge); color: var(--ink);
+    border-radius: 4px; padding: 5px 8px;
+    font-family: inherit; font-size: .78rem;
+  }
+  .add-row button { font-size: .72rem; padding: 5px 9px; }
+  .del { flex: none; color: var(--panel-edge); font-size: .9rem; padding: 0 2px; }
+  .del:hover { color: #c66; }
+
+  .editable { outline: none; border-bottom: 1px dashed transparent; }
+  .editable:focus { border-bottom-color: var(--accent); color: var(--ink); }
+
+  .add-section { width: 100%; margin-top: 4px; border-style: dashed; }
+
+  footer {
+    margin-top: 24px; font-size: .68rem; color: var(--ink-dim);
+    text-align: center; line-height: 1.7;
+  }
+
+  /* ===== SETTINGS MENU ===== */
+  .menu-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: none; z-index: 50;
+  }
+  .menu-overlay.open { display: block; }
+  .menu {
+    position: fixed; top: 0; right: 0; height: 100%;
+    width: 290px; max-width: 86vw;
+    background: var(--panel);
+    border-left: 2px solid var(--accent);
+    box-shadow: -8px 0 30px rgba(0,0,0,.5);
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    z-index: 51; overflow-y: auto;
+    padding: 18px 18px 40px;
+  }
+  .menu.open { transform: translateX(0); }
+  .menu h3 {
+    margin: 0 0 4px; font-size: 1rem; color: var(--accent);
+    letter-spacing: .5px;
+  }
+  .menu .close-x {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; color: var(--ink-dim);
+    font-size: 1.1rem; padding: 4px;
+  }
+  .menu-group { margin-top: 22px; }
+  .menu-group > .glabel {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--ink-dim); margin-bottom: 8px;
+  }
+
+  .mode-toggle {
+    display: flex; border: 1px solid var(--panel-edge);
+    border-radius: 6px; overflow: hidden;
+  }
+  .mode-toggle button {
+    flex: 1; border: none; border-radius: 0; background: transparent;
+    padding: 9px 0; color: var(--ink-dim);
+  }
+  .mode-toggle button.active {
+    background: var(--accent); color: var(--bg); font-weight: bold;
+  }
+
+  .hint {
+    font-size: .66rem; color: var(--ink-dim);
+    margin-top: 7px; line-height: 1.5;
+  }
+
+  .size-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .size-row button {
+    flex: none; width: 46px; font-size: .95rem; font-weight: bold;
+    padding: 9px 0; text-align: center;
+  }
+  .size-val {
+    flex: 1; text-align: center; font-size: .8rem;
+    color: var(--ink-dim);
+    border: 1px solid var(--panel-edge); border-radius: 6px;
+    padding: 9px 0;
+  }
+
+  .swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .swatch {
+    border: 2px solid var(--panel-edge); border-radius: 6px;
+    padding: 9px 8px; cursor: pointer; text-align: left;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--input-bg); color: var(--ink);
+    font-size: .76rem; font-family: var(--font-body);
+  }
+  .swatch.active { border-color: var(--accent); }
+  .swatch .dot {
+    width: 16px; height: 16px; border-radius: 50%; flex: none;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+
+  /* Category-theme swatches: 5 mini dots show the full palette */
+  .cat-swatches { display: flex; flex-direction: column; gap: 7px; }
+  .cat-swatch {
+    border: 2px solid var(--panel-edge); border-radius: 6px;
+    padding: 9px 10px; cursor: pointer;
+    background: var(--input-bg); color: var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: .78rem; font-family: var(--font-body);
+  }
+  .cat-swatch.active { border-color: var(--accent); }
+  .cat-swatch .dots-row { display: flex; gap: 4px; }
+  .cat-swatch .dots-row .d {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.18);
+  }
+
+  .font-list { display: flex; flex-direction: column; gap: 7px; }
+  .font-opt {
+    border: 2px solid var(--panel-edge); border-radius: 6px;
+    padding: 9px 11px; cursor: pointer;
+    background: var(--input-bg); color: var(--ink); font-size: .9rem;
+  }
+  .font-opt.active { border-color: var(--accent); }
+  .font-opt small {
+    display: block; font-size: .64rem; color: var(--ink-dim);
+    font-family: "Courier New", monospace; letter-spacing: .5px;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>BATES AVIATION</h1>
+    <div class="sub">Cessna 172M Pilot Checklist &mdash; POH-derived procedures</div>
+    <div class="tail">
+      <label>Reg / Tail #</label>
+      <input id="tail" type="text" placeholder="N-number" />
+      <label>S/N</label>
+      <input id="serial" type="text" value="17262384" />
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button onclick="openMenu()" class="accent">&#9776; Menu</button>
+    <button onclick="resetAll()" class="warn">Reset all checks</button>
+    <button onclick="collapseAll(true)">Collapse all</button>
+    <button onclick="collapseAll(false)">Expand all</button>
+    <button onclick="toggleEdit()" id="editBtn">Edit mode: OFF</button>
+  </div>
+
+  <div class="progress-line">Progress: <strong id="prog">0 / 0</strong> items checked</div>
+
+  <div id="board"></div>
+  <button class="add-section" onclick="addSection()">+ Add section</button>
+
+  <footer>
+    <a href="index.html" style="color:var(--accent);text-decoration:none">&larr; Back to Bates Aviation</a><br><br>
+    Works fully offline once loaded. Edits, checks, theme, and tail number are
+    stored locally in your browser.<br>
+    Content derived from the 1973 Cessna 172M Pilot Operating Handbook. This is
+    a reference aid only. Always defer to the official POH/AFM and any current
+    STC or placard data for your specific aircraft.
+  </footer>
+</div>
+
+<!-- ===== SETTINGS MENU ===== -->
+<div class="menu-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="menu" id="menu">
+  <button class="close-x" onclick="closeMenu()">&#10005;</button>
+  <h3>Display Settings</h3>
+
+  <div class="menu-group">
+    <div class="glabel">Appearance</div>
+    <div class="mode-toggle">
+      <button id="mode-light" onclick="setMode('light')">&#9728; Light</button>
+      <button id="mode-dark" onclick="setMode('dark')">&#9790; Dark</button>
+      <button id="mode-night" onclick="setMode('night')">&#128308; Night</button>
+    </div>
+    <div class="hint">Night mode dims the screen to red to protect dark-adapted vision.</div>
+  </div>
+
+  <div class="menu-group">
+    <div class="glabel">Text Size</div>
+    <div class="size-row">
+      <button onclick="stepSize(-1)">A&minus;</button>
+      <div class="size-val" id="sizeVal">100%</div>
+      <button onclick="stepSize(1)">A+</button>
+    </div>
+  </div>
+
+  <div class="menu-group" id="schemeGroup">
+    <div class="glabel">Color Scheme</div>
+    <div class="swatches" id="swatches"></div>
+  </div>
+
+  <div class="menu-group">
+    <div class="glabel">Category Colors</div>
+    <div class="cat-swatches" id="catSwatches"></div>
+  </div>
+
+  <div class="menu-group">
+    <div class="glabel">Font</div>
+    <div class="font-list" id="fontList"></div>
+  </div>
+</div>
+
+<script src="checklist-data.js"></script>
+<script>
+/* ================= CHECKLIST DATA ================= */
+const DEFAULT = CHECKLIST_SECTIONS;
+
+/* ================= THEMES ================= */
+/* Each scheme has a dark + light variant. Colors chosen for
+   high readability and good contrast in a cockpit. */
+const SCHEMES = {
+  amber: {
+    name: "Amber Panel",
+    dark:  { bg:"#0e1116", panel:"#161b22", edge:"#2a323d", ink:"#e6edf3",
+             dim:"#8b97a5", accent:"#e3b04b", green:"#34b06e", done:"#11271a",
+             line:"rgba(255,255,255,.04)", input:"#0b0e13" },
+    light: { bg:"#f3efe4", panel:"#fbf8ef", edge:"#d6cdb5", ink:"#2a2620",
+             dim:"#7a7058", accent:"#a9701c", green:"#1e7a47", done:"#dfeede",
+             line:"rgba(0,0,0,.05)", input:"#ffffff" }
+  },
+  ocean: {
+    name: "Ocean Blue",
+    dark:  { bg:"#0b1620", panel:"#13212e", edge:"#283a4a", ink:"#e4eef5",
+             dim:"#85a0b2", accent:"#46b6e8", green:"#33b97f", done:"#0f2a23",
+             line:"rgba(255,255,255,.04)", input:"#081119" },
+    light: { bg:"#eef4f8", panel:"#ffffff", edge:"#c6d6e0", ink:"#1c2b36",
+             dim:"#5e7585", accent:"#1a6f9c", green:"#1d8a55", done:"#dcefe2",
+             line:"rgba(0,0,0,.05)", input:"#f4f8fb" }
+  },
+  forest: {
+    name: "Sage Green",
+    dark:  { bg:"#10160f", panel:"#1a221896", edge:"#33422f", ink:"#e8efe2",
+             dim:"#94a58c", accent:"#9ccb5a", green:"#5fc46a", done:"#15301a",
+             line:"rgba(255,255,255,.04)", input:"#0b100a" },
+    light: { bg:"#eef2e8", panel:"#fbfdf6", edge:"#cdd8c0", ink:"#252b1f",
+             dim:"#6c7860", accent:"#4f7d22", green:"#327d3a", done:"#d9edcf",
+             line:"rgba(0,0,0,.05)", input:"#ffffff" }
+  },
+  slate: {
+    name: "Slate Mono",
+    dark:  { bg:"#101214", panel:"#1a1d21", edge:"#33383e", ink:"#eceef0",
+             dim:"#8c929a", accent:"#cfd4da", green:"#3fb87a", done:"#15281d",
+             line:"rgba(255,255,255,.04)", input:"#0b0c0e" },
+    light: { bg:"#eceef0", panel:"#ffffff", edge:"#ccd0d6", ink:"#1c1f23",
+             dim:"#646a72", accent:"#3a4048", green:"#1f8a52", done:"#dceee2",
+             line:"rgba(0,0,0,.05)", input:"#f5f6f8" }
+  },
+  highvis: {
+    name: "High Visibility",
+    dark:  { bg:"#000000", panel:"#121212", edge:"#3a3a3a", ink:"#ffffff",
+             dim:"#b8b8b8", accent:"#ffd400", green:"#3ee07a", done:"#0d2a16",
+             line:"rgba(255,255,255,.07)", input:"#0a0a0a" },
+    light: { bg:"#ffffff", panel:"#ffffff", edge:"#9a9a9a", ink:"#000000",
+             dim:"#444444", accent:"#0040c0", green:"#0a7a3a", done:"#cdeed4",
+             line:"rgba(0,0,0,.08)", input:"#f0f0f0" }
+  }
+};
+
+const FONTS = {
+  mono:   { name: "Aviator Mono", css: '"Courier New", ui-monospace, Menlo, Consolas, monospace' },
+  sans:   { name: "Clean Sans",   css: '"Trebuchet MS", "Segoe UI", Verdana, sans-serif' },
+  serif:  { name: "Classic Serif", css: 'Georgia, "Times New Roman", serif' },
+  rounded:{ name: "Rounded Soft", css: '"Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif' }
+};
+
+/* Night mode: a single low-output red palette that overrides the scheme,
+   to preserve dark-adapted night vision. */
+const NIGHT = {
+  bg:"#0a0000", panel:"#1a0303", edge:"#451010", ink:"#ff5a3c",
+  dim:"#a13322", accent:"#ff7a4a", green:"#ff3b2f", done:"#2a0606",
+  line:"rgba(255,60,40,.10)", input:"#120101"
+};
+
+/* Text-size steps (root font-size). */
+const SIZES = [0.85, 1.0, 1.15, 1.3, 1.5];
+
+/* Category color themes — each defines the 5 group palettes.
+   bg = section header background tint, edge = left-bar accent.
+   Emerg always stays prominent across themes. */
+const CAT_THEMES = {
+  classic: {
+    name: "Classic",
+    preflight: { bg:"rgba(70, 140, 210, .20)", edge:"rgba(70, 140, 210, .95)" },
+    engine:    { bg:"rgba(230, 145, 50, .22)", edge:"rgba(230, 145, 50, .95)" },
+    depart:    { bg:"rgba(80, 180, 110, .20)", edge:"rgba(80, 180, 110, .95)" },
+    arrive:    { bg:"rgba(235, 200, 60, .22)", edge:"rgba(235, 200, 60, .95)" },
+    emerg:     { bg:"rgba(220, 70, 70, .26)",  edge:"rgba(230, 70, 70, 1)" }
+  },
+  vibrant: {
+    name: "Vibrant",
+    preflight: { bg:"rgba(40, 200, 220, .24)", edge:"rgba(40, 200, 220, 1)" },
+    engine:    { bg:"rgba(255, 130, 80, .26)", edge:"rgba(255, 130, 80, 1)" },
+    depart:    { bg:"rgba(130, 230, 80, .24)", edge:"rgba(130, 230, 80, 1)" },
+    arrive:    { bg:"rgba(255, 215, 60, .26)", edge:"rgba(255, 215, 60, 1)" },
+    emerg:     { bg:"rgba(255, 60, 60, .32)",  edge:"rgba(255, 60, 60, 1)" }
+  },
+  muted: {
+    name: "Muted",
+    preflight: { bg:"rgba(120, 145, 175, .18)", edge:"rgba(120, 145, 175, .9)" },
+    engine:    { bg:"rgba(180, 140, 100, .18)", edge:"rgba(180, 140, 100, .9)" },
+    depart:    { bg:"rgba(120, 165, 130, .18)", edge:"rgba(120, 165, 130, .9)" },
+    arrive:    { bg:"rgba(185, 170, 110, .18)", edge:"rgba(185, 170, 110, .9)" },
+    emerg:     { bg:"rgba(190, 100, 100, .24)", edge:"rgba(200, 100, 100, .95)" }
+  },
+  cockpit: {
+    name: "Cockpit",
+    preflight: { bg:"rgba(45, 100, 165, .22)", edge:"rgba(70, 140, 210, 1)" },
+    engine:    { bg:"rgba(200, 130, 30, .24)", edge:"rgba(240, 170, 50, 1)" },
+    depart:    { bg:"rgba(40, 140, 90, .22)",  edge:"rgba(60, 180, 120, 1)" },
+    arrive:    { bg:"rgba(60, 165, 175, .22)", edge:"rgba(80, 200, 210, 1)" },
+    emerg:     { bg:"rgba(200, 50, 50, .28)",  edge:"rgba(255, 80, 80, 1)" }
+  },
+  off: {
+    name: "Off (emergency only)",
+    preflight: { bg:"transparent", edge:"transparent" },
+    engine:    { bg:"transparent", edge:"transparent" },
+    depart:    { bg:"transparent", edge:"transparent" },
+    arrive:    { bg:"transparent", edge:"transparent" },
+    emerg:     { bg:"rgba(220, 70, 70, .26)", edge:"rgba(230, 70, 70, 1)" }
+  }
+};
+const GROUPS = ['preflight', 'engine', 'depart', 'arrive', 'emerg'];
+
+/* ================= STATE ================= */
+const KEY = 'bates_172m_checklist_v2';
+let state = load();
+let editMode = false;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      s.theme = s.theme || {};
+      s.theme.scheme = s.theme.scheme || 'amber';
+      s.theme.mode   = s.theme.mode   || 'dark';
+      s.theme.font   = s.theme.font   || 'mono';
+      s.theme.catTheme = s.theme.catTheme || 'classic';
+      if (typeof s.theme.size !== 'number') s.theme.size = 1;
+      return s;
+    }
+  } catch (e) {}
+  return {
+    tail: '', serial: '17262384', collapsed: {},
+    theme: { scheme: 'amber', mode: 'dark', font: 'mono', size: 1, catTheme: 'classic' },
+    sections: DEFAULT.map(([title, items]) => ({
+      title,
+      items: items.map(s => {
+        const [label, action] = s.split('|');
+        return { label, action, checked: false };
+      })
+    }))
+  };
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+/* ================= THEME APPLY ================= */
+function applyTheme() {
+  const t = state.theme;
+  /* Night mode uses the dedicated red palette and ignores the scheme. */
+  const c = (t.mode === 'night') ? NIGHT : SCHEMES[t.scheme][t.mode];
+  const r = document.documentElement.style;
+  r.setProperty('--bg', c.bg);
+  r.setProperty('--panel', c.panel);
+  r.setProperty('--panel-edge', c.edge);
+  r.setProperty('--ink', c.ink);
+  r.setProperty('--ink-dim', c.dim);
+  r.setProperty('--accent', c.accent);
+  r.setProperty('--green-edge', c.green);
+  r.setProperty('--done-bg', c.done);
+  r.setProperty('--row-line', c.line);
+  r.setProperty('--input-bg', c.input);
+  r.setProperty('--font-body', FONTS[t.font].css);
+  r.setProperty('--scale', t.size + 'rem');
+  document.documentElement.setAttribute('data-mode', t.mode);
+
+  document.getElementById('mode-light').classList.toggle('active', t.mode === 'light');
+  document.getElementById('mode-dark').classList.toggle('active', t.mode === 'dark');
+  document.getElementById('mode-night').classList.toggle('active', t.mode === 'night');
+
+  /* Color scheme has no effect in night mode — dim that section. */
+  const sg = document.getElementById('schemeGroup');
+  sg.style.opacity = (t.mode === 'night') ? '.4' : '1';
+  sg.style.pointerEvents = (t.mode === 'night') ? 'none' : 'auto';
+
+  document.getElementById('sizeVal').innerText =
+    Math.round(t.size * 100) + '%';
+
+  /* Apply category color palette as CSS variables. */
+  const cat = CAT_THEMES[t.catTheme] || CAT_THEMES.classic;
+  GROUPS.forEach(g => {
+    r.setProperty('--g-' + g + '-bg', cat[g].bg);
+    r.setProperty('--g-' + g + '-edge', cat[g].edge);
+  });
+
+  buildSwatches();
+  buildCatSwatches();
+  buildFonts();
+}
+
+function setMode(m) { state.theme.mode = m; save(); applyTheme(); }
+function setScheme(s) { state.theme.scheme = s; save(); applyTheme(); }
+function setFont(f) { state.theme.font = f; save(); applyTheme(); }
+function setCatTheme(c) { state.theme.catTheme = c; save(); applyTheme(); }
+
+function stepSize(dir) {
+  let i = SIZES.indexOf(state.theme.size);
+  if (i === -1) i = 1;
+  i = Math.min(SIZES.length - 1, Math.max(0, i + dir));
+  state.theme.size = SIZES[i];
+  save(); applyTheme();
+}
+
+function buildSwatches() {
+  const box = document.getElementById('swatches');
+  box.innerHTML = '';
+  Object.keys(SCHEMES).forEach(key => {
+    const pvMode = (state.theme.mode === 'night') ? 'dark' : state.theme.mode;
+    const preview = SCHEMES[key][pvMode];
+    const b = document.createElement('div');
+    b.className = 'swatch' + (state.theme.scheme === key ? ' active' : '');
+    b.onclick = () => setScheme(key);
+    b.innerHTML = '<span class="dot" style="background:' + preview.accent + '"></span>'
+                + SCHEMES[key].name;
+    box.appendChild(b);
+  });
+}
+
+/* Build category-color theme list with 5-dot palette preview each. */
+function buildCatSwatches() {
+  const box = document.getElementById('catSwatches');
+  box.innerHTML = '';
+  Object.keys(CAT_THEMES).forEach(key => {
+    const t = CAT_THEMES[key];
+    const b = document.createElement('div');
+    b.className = 'cat-swatch' + (state.theme.catTheme === key ? ' active' : '');
+    b.onclick = () => setCatTheme(key);
+    let dots = '';
+    GROUPS.forEach(g => {
+      dots += '<span class="d" style="background:' + t[g].edge + '"></span>';
+    });
+    b.innerHTML = '<span>' + t.name + '</span><span class="dots-row">' + dots + '</span>';
+    box.appendChild(b);
+  });
+}
+
+function buildFonts() {
+  const box = document.getElementById('fontList');
+  box.innerHTML = '';
+  Object.keys(FONTS).forEach(key => {
+    const o = document.createElement('div');
+    o.className = 'font-opt' + (state.theme.font === key ? ' active' : '');
+    o.style.fontFamily = FONTS[key].css;
+    o.onclick = () => setFont(key);
+    o.innerHTML = FONTS[key].name + '<small>ABCDEFG 0123 \u2713</small>';
+    box.appendChild(o);
+  });
+}
+
+/* ================= MENU ================= */
+function openMenu() {
+  document.getElementById('menu').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeMenu() {
+  document.getElementById('menu').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+/* ================= RENDER ================= */
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  let total = 0, done = 0;
+
+  state.sections.forEach((sec, si) => {
+    const checkedCount = sec.items.filter(i => i.checked).length;
+    const all = sec.items.length > 0 && checkedCount === sec.items.length;
+    total += sec.items.length;
+    done += checkedCount;
+
+    const el = document.createElement('section');
+    if (all) el.classList.add('complete');
+    if (state.collapsed[si]) el.classList.add('collapsed');
+
+    const head = document.createElement('div');
+    head.className = 'sec-head';
+    head.setAttribute('data-group', groupFor(sec.title));
+    head.onclick = (e) => {
+      if (e.target.classList.contains('editable')) return;
+      state.collapsed[si] = !state.collapsed[si];
+      save(); render();
+    };
+    head.innerHTML =
+      '<h2><span class="chev">\u25bc</span>' +
+      '<span class="editable" contenteditable="' + editMode + '"' +
+      ' oninput="renameSection(' + si + ', this.innerText)">' + esc(sec.title) + '</span></h2>' +
+      '<span class="count"><span class="badge ' + (all ? 'done' : '') + '">' +
+      (all ? 'COMPLETE' : 'IN WORK') + '</span>&nbsp;' +
+      checkedCount + '/' + sec.items.length + '</span>';
+    el.appendChild(head);
+
+    const items = document.createElement('div');
+    items.className = 'items';
+
+    sec.items.forEach((it, ii) => {
+      const row = document.createElement('div');
+      row.className = 'item' + (it.checked ? ' checked' : '');
+      row.onclick = (e) => {
+        if (e.target.classList.contains('editable') || e.target.classList.contains('del')) return;
+        it.checked = !it.checked;
+        save(); render();
+      };
+      row.innerHTML =
+        '<div class="box">\u2713</div>' +
+        '<div class="label">' +
+          '<span class="editable" contenteditable="' + editMode + '"' +
+          ' oninput="editItem(' + si + ',' + ii + ',\'label\',this.innerText)">' +
+          esc(it.label) + '</span>' +
+          '<span class="dots"> \u00b7\u00b7\u00b7\u00b7\u00b7\u00b7 </span>' +
+          '<span class="action editable" contenteditable="' + editMode + '"' +
+          ' oninput="editItem(' + si + ',' + ii + ',\'action\',this.innerText)">' +
+          esc(it.action) + '</span>' +
+        '</div>' +
+        (editMode ? '<span class="del" onclick="delItem(' + si + ',' + ii + ')">\u2715</span>' : '');
+      items.appendChild(row);
+    });
+
+    if (editMode) {
+      const add = document.createElement('div');
+      add.className = 'add-row';
+      add.innerHTML =
+        '<input placeholder="Item" id="ni-' + si + '">' +
+        '<input placeholder="Action" id="na-' + si + '" style="max-width:120px">' +
+        '<button onclick="addItem(' + si + ')">Add</button>';
+      items.appendChild(add);
+    }
+
+    el.appendChild(items);
+    board.appendChild(el);
+  });
+
+  document.getElementById('prog').innerText = done + ' / ' + total;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* Decide which category color band a section belongs to,
+   based on its title. Returns one of: preflight, engine, depart,
+   arrive, emerg, or '' (no color, for user-added sections). */
+function groupFor(title) {
+  if (!title) return '';
+  if (title.indexOf('\u26a0') !== -1) return 'emerg';
+  const t = title.toLowerCase();
+  if (t.indexOf('pre-flight') !== -1 || t.indexOf('preflight') !== -1) return 'preflight';
+  if (t.indexOf('starting engine') !== -1 || t === 'starting engine') return 'engine';
+  if (t.indexOf('take off') !== -1 || t.indexOf('takeoff') !== -1 || t.indexOf('climb') !== -1) return 'depart';
+  if (t.indexOf('cruise') !== -1 || t.indexOf('landing') !== -1 || t.indexOf('securing') !== -1) return 'arrive';
+  return '';
+}
+
+function renameSection(si, val) { state.sections[si].title = val; save(); }
+function editItem(si, ii, field, val) { state.sections[si].items[ii][field] = val; save(); }
+function delItem(si, ii) { state.sections[si].items.splice(ii, 1); save(); render(); }
+function addItem(si) {
+  const label = document.getElementById('ni-' + si).value.trim();
+  const action = document.getElementById('na-' + si).value.trim();
+  if (!label) return;
+  state.sections[si].items.push({ label, action: action || 'CHECK', checked: false });
+  save(); render();
+}
+function addSection() {
+  state.sections.push({ title: 'New Section', items: [] });
+  save(); render();
+}
+function resetAll() {
+  if (!confirm('Uncheck every item?')) return;
+  state.sections.forEach(s => s.items.forEach(i => i.checked = false));
+  save(); render();
+}
+function collapseAll(v) {
+  state.sections.forEach((_, i) => state.collapsed[i] = v);
+  save(); render();
+}
+function toggleEdit() {
+  editMode = !editMode;
+  document.getElementById('editBtn').innerText = 'Edit mode: ' + (editMode ? 'ON' : 'OFF');
+  render();
+}
+
+/* ================= INIT ================= */
+document.getElementById('tail').value = state.tail || '';
+document.getElementById('serial').value = state.serial || '';
+document.getElementById('tail').oninput = e => { state.tail = e.target.value; save(); };
+document.getElementById('serial').oninput = e => { state.serial = e.target.value; save(); };
+
+/* Always start with every section collapsed for a clean checklist view. */
+state.collapsed = {};
+state.sections.forEach((_, i) => { state.collapsed[i] = true; });
+
+applyTheme();
+render();
+</script>
+</body>
+</html>
